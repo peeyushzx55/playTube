@@ -310,23 +310,33 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
 });
 
 const deleteFilesFromCloudinary = asyncHandler(async (req, res) => {
-  const avatarLocalPath = req.files?.avatar[0]?.path;
-
-  let coverImageLocalPath;
-  if (
-    req.files &&
-    Array.isArray(req.files.coverImage) &&
-    req.files.coverImage.length > 0
-  ) {
-    coverImageLocalPath = req.files.coverImage[0].path;
+  // Fetch user to get avatar and coverImage URLs
+  const user = await User.findById(req.user._id);
+  if (!user) {
+    throw new ApiError(404, "User not found");
   }
 
-  const avatar = await deleteOnCloudinary(avatarLocalPath);
+  // Helper to extract publicId from Cloudinary URL
+  function extractPublicId(url) {
+    if (!url) return null;
+    // Example: https://res.cloudinary.com/<cloud_name>/image/upload/v1234567890/folder/filename.jpg
+    const parts = url.split("/");
+    const uploadIndex = parts.findIndex((p) => p === "upload");
+    if (uploadIndex === -1) return null;
+    // Remove version and extension
+    let publicIdWithExt = parts.slice(uploadIndex + 1).join("/");
+    publicIdWithExt = publicIdWithExt.replace(/\.[^/.]+$/, "");
+    return publicIdWithExt;
+  }
 
-  const coverImage = await deleteOnCloudinary(coverImageLocalPath);
+  const avatarPublicId = extractPublicId(user.avatar);
+  const coverImagePublicId = extractPublicId(user.coverImage);
+
+  const avatar = await deleteOnCloudinary(avatarPublicId);
+  const coverImage = await deleteOnCloudinary(coverImagePublicId);
 
   if (!avatar) {
-    throw new ApiError(400, "Avatar file not found");
+    throw new ApiError(400, "Avatar file not found on Cloudinary");
   }
 
   return res

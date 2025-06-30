@@ -22,18 +22,17 @@ const uploadOnCloudinary = async (localFilePath) => {
   }
 };
 
-const deleteOnCloudinary = async (localFilePath) => {
+// Accepts cloudinary publicId, not local file path
+const deleteOnCloudinary = async (publicId, resourceType = "image") => {
   try {
-    if (!localFilePath) {
+    if (!publicId) {
       return null;
     }
-    const response = await cloudinary.uploader.destroy(localFilePath, {
-      resource_type: "image",
+    const response = await cloudinary.uploader.destroy(publicId, {
+      resource_type: resourceType,
     });
-    fs.unlinkSync(localFilePath);
     return response;
   } catch (error) {
-    fs.unlinkSync(localFilePath);
     return null;
   }
 };
